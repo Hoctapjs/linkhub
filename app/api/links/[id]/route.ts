@@ -122,6 +122,12 @@ export async function PUT(
       updateData.favicon = validatedData.favicon;
     }
 
+    if (validatedData.notes === null) {
+      unsetData.notes = '';
+    } else if (validatedData.notes !== undefined) {
+      updateData.notes = validatedData.notes;
+    }
+
     const nextUrl = validatedData.url ?? existing.url;
     const urlChanged = validatedData.url !== undefined && validatedData.url !== existing.url;
     const shouldFetchMetadata = urlChanged;

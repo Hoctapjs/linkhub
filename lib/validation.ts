@@ -63,6 +63,7 @@ export const createLinkSchema = z.object({
   description: optionalTextField(1000),
   favicon: optionalTextField(2048),
   category: optionalTextField(50),
+  notes: optionalTextField(2000),
   tags: z.array(tagSchema).max(20, 'Maximum 20 tags allowed').default([]),
 });
 
@@ -83,6 +84,7 @@ export const updateLinkSchema = z
     description: nullableTextField(1000),
     favicon: optionalTextField(2048),
     category: nullableTextField(50),
+    notes: nullableTextField(2000),
     tags: z.array(tagSchema).max(20, 'Maximum 20 tags allowed').optional(),
   })
   .refine((data) => Object.values(data).some((value) => value !== undefined), {

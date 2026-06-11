@@ -10,6 +10,7 @@ export interface Link {
   favicon?: string; // optional, URL to favicon
   category?: string; // optional, single main category
   tags: string[]; // array of tags, defaults to []
+  notes?: string; // optional, AI-generated notes
   createdAt: string; // ISO 8601 datetime string
   updatedAt: string; // ISO 8601 datetime string
 }

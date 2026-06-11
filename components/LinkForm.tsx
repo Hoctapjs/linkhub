@@ -21,6 +21,7 @@ interface FormState {
   category: string;
   tags: string;
   favicon: string;
+  notes: string;
 }
 
 function isHttpUrl(value: string): boolean {
@@ -63,6 +64,7 @@ function buildInitialFormState(mode: 'create' | 'edit', initialLink?: Link | nul
       category: initialLink.category ?? '',
       tags: initialLink.tags.join(', '),
       favicon: initialLink.favicon ?? '',
+      notes: initialLink.notes ?? '',
     };
   }
 
@@ -73,16 +75,53 @@ function buildInitialFormState(mode: 'create' | 'edit', initialLink?: Link | nul
     category: '',
     tags: '',
     favicon: '',
+    notes: '',
   };
 }
 
 export function LinkForm({ mode, initialLink, onSuccess, onClose }: LinkFormProps) {
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [metadataLoaded, setMetadataLoaded] = useState(() => Boolean(initialLink?.favicon || initialLink?.description));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState<FormState>(() => buildInitialFormState(mode, initialLink));
   const lastFetchedUrlRef = useRef(initialLink?.url ?? '');
+
+  const generateWithAI = useCallback(async () => {
+    const url = formData.url.trim();
+    if (!url) {
+      toast.error('Nhập URL trước');
+      return;
+    }
+    setIsGeneratingNotes(true);
+    try {
+      const response = await fetch('/api/ai-notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to generate');
+      }
+      const ai = result.data;
+      setFormData((prev) => ({
+        ...prev,
+        title: ai.title || prev.title,
+        description: ai.description || prev.description,
+        notes: ai.notes || prev.notes,
+        category: ai.category || prev.category,
+        tags: ai.tags?.length ? ai.tags.join(', ') : prev.tags,
+      }));
+      toast.success('Đã điền thông tin từ AI');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to generate';
+      toast.error(message);
+    } finally {
+      setIsGeneratingNotes(false);
+    }
+  }, [formData.url]);
 
   const fetchMetadata = useCallback(async (url: string) => {
     if (!isHttpUrl(url)) {
@@ -141,6 +180,7 @@ export function LinkForm({ mode, initialLink, onSuccess, onClose }: LinkFormProp
       const trimmedDescription = formData.description.trim();
       const trimmedCategory = formData.category.trim();
       const trimmedFavicon = formData.favicon.trim();
+      const trimmedNotes = formData.notes.trim();
 
       const payload =
         mode === 'create'
@@ -150,6 +190,7 @@ export function LinkForm({ mode, initialLink, onSuccess, onClose }: LinkFormProp
               description: trimmedDescription || undefined,
               category: trimmedCategory || undefined,
               favicon: trimmedFavicon || undefined,
+              notes: trimmedNotes || undefined,
               tags: tagsArray,
             }
           : {
@@ -158,6 +199,7 @@ export function LinkForm({ mode, initialLink, onSuccess, onClose }: LinkFormProp
               description: trimmedDescription ? trimmedDescription : null,
               category: trimmedCategory ? trimmedCategory : null,
               favicon: trimmedFavicon || undefined,
+              notes: trimmedNotes ? trimmedNotes : null,
               tags: tagsArray,
             };
 
@@ -216,17 +258,34 @@ export function LinkForm({ mode, initialLink, onSuccess, onClose }: LinkFormProp
           className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
         />
         {errors.url ? <p className="mt-1 text-sm text-red-600">{errors.url}</p> : null}
-        {isFetchingMetadata ? (
-          <div className="mt-2 flex items-center gap-2 text-sm text-blue-600">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Fetching metadata...
+        <div className="mt-2 flex items-center justify-between">
+          <div>
+            {isFetchingMetadata ? (
+              <div className="flex items-center gap-2 text-sm text-blue-600">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Đang lấy metadata...
+              </div>
+            ) : metadataLoaded ? (
+              <div className="flex items-center gap-2 text-sm text-emerald-600">
+                <Sparkles className="h-4 w-4" />
+                Metadata loaded
+              </div>
+            ) : null}
           </div>
-        ) : metadataLoaded ? (
-          <div className="mt-2 flex items-center gap-2 text-sm text-emerald-600">
-            <Sparkles className="h-4 w-4" />
-            Metadata loaded
-          </div>
-        ) : null}
+          <button
+            type="button"
+            onClick={() => void generateWithAI()}
+            disabled={isGeneratingNotes || !formData.url.trim()}
+            className="inline-flex items-center gap-1.5 rounded-md border border-purple-200 bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700 transition hover:bg-purple-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isGeneratingNotes ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Sparkles className="h-3 w-3" />
+            )}
+            {isGeneratingNotes ? 'Đang tạo...' : 'Điền bằng AI'}
+          </button>
+        </div>
       </div>
 
       <div>
@@ -255,6 +314,18 @@ export function LinkForm({ mode, initialLink, onSuccess, onClose }: LinkFormProp
           className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
         />
         {errors.description ? <p className="mt-1 text-sm text-red-600">{errors.description}</p> : null}
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700">AI Notes</label>
+        <textarea
+          placeholder="AI-generated notes about this link"
+          rows={3}
+          value={formData.notes}
+          onChange={(event) => setFormData((prev) => ({ ...prev, notes: event.target.value }))}
+          className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
+        />
+        {errors.notes ? <p className="mt-1 text-sm text-red-600">{errors.notes}</p> : null}
       </div>
 
       <div>

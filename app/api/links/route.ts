@@ -96,6 +96,7 @@ export async function POST(request: Request) {
       description: validatedData.description || metadata.description,
       favicon: validatedData.favicon || metadata.favicon,
       category: validatedData.category,
+      notes: validatedData.notes,
       tags: validatedData.tags || [],
       createdAt: now,
       updatedAt: now,

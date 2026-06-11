@@ -1,7 +1,7 @@
 ﻿/* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { ExternalLink, Trash2, Edit2 } from 'lucide-react';
+import { ExternalLink, Trash2, Edit2, Sparkles } from 'lucide-react';
 import { Link } from '@/lib/types';
 
 interface LinkCardProps {
@@ -47,6 +47,16 @@ export function LinkCard({ link, onEdit, onDelete }: LinkCardProps) {
         <p className="mt-3 line-clamp-3 text-sm leading-6 text-gray-600">
           {link.description}
         </p>
+      ) : null}
+
+      {link.notes ? (
+        <div className="mt-3 rounded-lg border border-purple-100 bg-purple-50 px-3 py-2">
+          <div className="mb-1 flex items-center gap-1.5">
+            <Sparkles className="h-3 w-3 text-purple-500" />
+            <span className="text-xs font-medium text-purple-600">AI Notes</span>
+          </div>
+          <p className="line-clamp-3 text-sm leading-6 text-purple-900">{link.notes}</p>
+        </div>
       ) : null}
 
       <div className="mt-3 flex flex-wrap gap-2">
