@@ -2,17 +2,29 @@
  * Core type definitions for LinkHub
  */
 
+export interface User {
+  _id: string;
+  email: string;
+  name?: string;
+  passwordHash: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PublicUser = Pick<User, '_id' | 'email' | 'name' | 'createdAt'>;
+
 export interface Link {
-  _id: string; // ObjectId as string when sent to client
-  title: string; // required
-  url: string; // required, must be valid http/https URL
-  description?: string; // optional, auto-fetched or user-provided
-  favicon?: string; // optional, URL to favicon
-  category?: string; // optional, single main category
-  tags: string[]; // array of tags, defaults to []
-  notes?: string; // optional, AI-generated notes
-  createdAt: string; // ISO 8601 datetime string
-  updatedAt: string; // ISO 8601 datetime string
+  _id: string;
+  ownerId: string;
+  title: string;
+  url: string;
+  description?: string;
+  favicon?: string;
+  category?: string;
+  tags: string[];
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface MetadataResult {

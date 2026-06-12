@@ -1,8 +1,14 @@
 import { fetchMetadata } from '@/lib/metadata';
+import { getCurrentUserId } from '@/lib/session';
 
 // GET /api/metadata?url=... - Fetch metadata from URL
 export async function GET(request: Request) {
   try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const url = searchParams.get('url');
 

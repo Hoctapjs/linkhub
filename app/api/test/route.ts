@@ -1,12 +1,10 @@
-/**
- * Test route for verifying MongoDB connection
- * This is a temporary test route and should be removed after Phase 1 verification
- * GET /api/test
- */
-
 import { getDb } from "@/lib/mongodb";
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return Response.json({ error: 'Not found' }, { status: 404 });
+  }
+
   try {
     const db = await getDb();
 

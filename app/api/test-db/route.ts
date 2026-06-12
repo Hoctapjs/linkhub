@@ -1,6 +1,10 @@
 ﻿import { getDb } from '@/lib/mongodb';
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return Response.json({ error: 'Not found' }, { status: 404 });
+  }
+
   try {
     const db = await getDb();
     const collections = await db.listCollections().toArray();

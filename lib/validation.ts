@@ -122,8 +122,29 @@ export const listLinksQuerySchema = z.object({
 });
 
 /**
+ * Schema for user registration
+ * Used for POST /api/register
+ */
+export const registerSchema = z.object({
+  email: z.string().trim().email('Invalid email address').toLowerCase(),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(100),
+  name: optionalTextField(80),
+});
+
+/**
+ * Schema for user login
+ * Used by NextAuth Credentials provider
+ */
+export const loginSchema = z.object({
+  email: z.string().trim().email('Invalid email address').toLowerCase(),
+  password: z.string().min(1, 'Password is required').max(100),
+});
+
+/**
  * Infer TypeScript types from schemas
  */
 export type CreateLinkInput = z.infer<typeof createLinkSchema>;
 export type UpdateLinkInput = z.infer<typeof updateLinkSchema>;
 export type ListLinksQuery = z.infer<typeof listLinksQuerySchema>;
+export type RegisterInput = z.infer<typeof registerSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;

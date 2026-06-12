@@ -1,6 +1,7 @@
 ﻿import { getDb } from '@/lib/mongodb';
 import { createLinkSchema, listLinksQuerySchema } from '@/lib/validation';
 import { fetchMetadata } from '@/lib/metadata';
+import { getCurrentUserId } from '@/lib/session';
 import type { MetadataResult } from '@/lib/types';
 import { ZodError } from 'zod';
 
@@ -11,6 +12,11 @@ function escapeRegex(value: string): string {
 // GET /api/links - List all links with filtering, searching, and sorting
 export async function GET(request: Request) {
   try {
+    const ownerId = await getCurrentUserId();
+    if (!ownerId) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const query = listLinksQuerySchema.parse({
       q: searchParams.get('q') ?? undefined,
@@ -21,8 +27,8 @@ export async function GET(request: Request) {
     const db = await getDb();
     const linksCollection = db.collection('links');
 
-    // Build filter
-    const filter: Record<string, unknown>[] = [];
+    // Build filter — always scope to current user
+    const filter: Record<string, unknown>[] = [{ ownerId }];
 
     // Search in title, url, description using regex
     if (query.q) {
@@ -46,7 +52,7 @@ export async function GET(request: Request) {
       filter.push({ tags: { $regex: `^${escapeRegex(query.tag)}$`, $options: 'i' } });
     }
 
-    const mongoFilter = filter.length > 0 ? { $and: filter } : {};
+    const mongoFilter = { $and: filter };
 
     // Fetch links, sort by createdAt descending
     const links = await linksCollection
@@ -80,6 +86,11 @@ export async function GET(request: Request) {
 // POST /api/links - Create a new link
 export async function POST(request: Request) {
   try {
+    const ownerId = await getCurrentUserId();
+    if (!ownerId) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
 
     // Validate input
@@ -91,6 +102,7 @@ export async function POST(request: Request) {
 
     const now = new Date().toISOString();
     const newLink = {
+      ownerId,
       title: validatedData.title,
       url: validatedData.url,
       description: validatedData.description || metadata.description,

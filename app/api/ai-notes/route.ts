@@ -1,4 +1,5 @@
 import { generateLinkData } from '@/lib/ai';
+import { getCurrentUserId } from '@/lib/session';
 import { z, ZodError } from 'zod';
 
 const bodySchema = z.object({
@@ -18,6 +19,11 @@ const bodySchema = z.object({
 
 // POST /api/ai-notes — generate AI data for a URL
 export async function POST(request: Request) {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   if (!process.env.GROQ_API_KEY) {
     return Response.json(
       { error: 'AI feature is not configured (missing GROQ_API_KEY)' },

@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useSession } from 'next-auth/react';
 import { Plus, RefreshCcw } from 'lucide-react';
 import { CategoryFilter } from '@/components/CategoryFilter';
 import { LinkForm } from '@/components/LinkForm';
 import { LinkList } from '@/components/LinkList';
 import { Modal } from '@/components/ui/Modal';
 import { SearchBar } from '@/components/SearchBar';
+import { UserMenu } from '@/components/UserMenu';
 import type { Link } from '@/lib/types';
 
 function buildCatalog(items: Link[]) {
@@ -60,6 +62,7 @@ function LinkListSkeleton() {
 }
 
 export default function Home() {
+  const { data: session } = useSession();
   const [links, setLinks] = useState<Link[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -199,14 +202,22 @@ export default function Home() {
             <p className="text-sm text-gray-500">Save, search, edit, and access your favorite links fast.</p>
           </div>
 
-          <button
-            type="button"
-            onClick={openCreateForm}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4" />
-            Add link
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={openCreateForm}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4" />
+              Add link
+            </button>
+            {session?.user ? (
+              <UserMenu
+                email={session.user.email ?? ''}
+                name={session.user.name}
+              />
+            ) : null}
+          </div>
         </div>
       </header>
 

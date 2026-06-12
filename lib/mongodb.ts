@@ -3,7 +3,8 @@
  * Follows Next.js best practices for caching connections during dev hot-reload
  */
 
-import { MongoClient, Db } from "mongodb";
+import { MongoClient, Db, Collection } from "mongodb";
+import type { User, Link } from "./types";
 
 const DB_NAME = "linkhub";
 
@@ -19,6 +20,7 @@ function getMongoUri(): string {
 
 let cachedClient: MongoClient | null = null;
 let cachedDb: Db | null = null;
+let indexesEnsured = false;
 
 /**
  * Connect to MongoDB and return the database instance
@@ -60,6 +62,34 @@ async function getDb(): Promise<Db> {
     console.error("Failed to connect to MongoDB:", error);
     throw error;
   }
+}
+
+/**
+ * Create required indexes idempotently. Safe to call multiple times — runs only once per process.
+ */
+export async function ensureIndexes(): Promise<void> {
+  if (indexesEnsured) return;
+  indexesEnsured = true;
+
+  try {
+    const db = await getDb();
+    await Promise.all([
+      db.collection("users").createIndex({ email: 1 }, { unique: true }),
+      db.collection("links").createIndex({ ownerId: 1, createdAt: -1 }),
+    ]);
+  } catch (error) {
+    // Reset flag so next request can retry
+    indexesEnsured = false;
+    throw error;
+  }
+}
+
+export function getUsersCollection(db: Db): Collection<Omit<User, "_id">> {
+  return db.collection<Omit<User, "_id">>("users");
+}
+
+export function getLinksCollection(db: Db): Collection<Omit<Link, "_id">> {
+  return db.collection<Omit<Link, "_id">>("links");
 }
 
 /**

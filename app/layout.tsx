@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SessionProvider } from "next-auth/react";
 import { ToasterProvider } from "@/components/ToasterProvider";
 import "./globals.css";
 
@@ -30,8 +31,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen flex flex-col bg-gray-50">
-        {children}
-        <ToasterProvider />
+        <SessionProvider>
+          {children}
+          <ToasterProvider />
+        </SessionProvider>
       </body>
     </html>
   );

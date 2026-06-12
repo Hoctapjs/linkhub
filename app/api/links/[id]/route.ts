@@ -1,6 +1,7 @@
 ﻿import { getDb } from '@/lib/mongodb';
 import { fetchMetadata } from '@/lib/metadata';
 import { updateLinkSchema } from '@/lib/validation';
+import { getCurrentUserId } from '@/lib/session';
 import { ObjectId } from 'mongodb';
 import { ZodError } from 'zod';
 
@@ -32,6 +33,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const ownerId = await getCurrentUserId();
+    if (!ownerId) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
 
     // Validate ObjectId
@@ -41,7 +47,7 @@ export async function GET(
 
     const db = await getDb();
     const linksCollection = db.collection('links');
-    const link = await linksCollection.findOne({ _id: new ObjectId(id) });
+    const link = await linksCollection.findOne({ _id: new ObjectId(id), ownerId });
 
     if (!link) {
       return Response.json({ error: 'Link not found' }, { status: 404 });
@@ -69,6 +75,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const ownerId = await getCurrentUserId();
+    if (!ownerId) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
 
     // Validate ObjectId
@@ -84,7 +95,7 @@ export async function PUT(
     const db = await getDb();
     const linksCollection = db.collection('links');
     const objectId = new ObjectId(id);
-    const existing = await linksCollection.findOne({ _id: objectId });
+    const existing = await linksCollection.findOne({ _id: objectId, ownerId });
 
     if (!existing) {
       return Response.json({ error: 'Link not found' }, { status: 404 });
@@ -145,7 +156,7 @@ export async function PUT(
     }
 
     const updateResult = await linksCollection.findOneAndUpdate(
-      { _id: objectId },
+      { _id: objectId, ownerId },
       {
         $set: updateData,
         ...(Object.keys(unsetData).length > 0 ? { $unset: unsetData } : {}),
@@ -187,6 +198,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const ownerId = await getCurrentUserId();
+    if (!ownerId) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
 
     // Validate ObjectId
@@ -196,7 +212,7 @@ export async function DELETE(
 
     const db = await getDb();
     const linksCollection = db.collection('links');
-    const result = await linksCollection.deleteOne({ _id: new ObjectId(id) });
+    const result = await linksCollection.deleteOne({ _id: new ObjectId(id), ownerId });
 
     if (result.deletedCount === 0) {
       return Response.json({ error: 'Link not found' }, { status: 404 });
